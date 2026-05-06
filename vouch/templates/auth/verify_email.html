@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-header">
+        <h1>Verify Your Email</h1>
+        <p>We've sent a 6-digit verification code to<br>
+        <strong>{{ masked_email }}</strong></p>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
+            ⏱ The code expires in <strong>5 minutes</strong>.
+        </p>
+    </div>
+
+    <div class="glass-panel">
+        <form method="post" id="otp-form">
+            {% csrf_token %}
+            <div class="form-group" style="text-align: center;">
+                <label class="form-label" for="id_otp" style="font-size: 1rem; margin-bottom: 1rem; display: block;">
+                    Enter Verification Code
+                </label>
+                <div style="display: flex; justify-content: center; gap: 0.5rem;" id="otp-inputs">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="0" autocomplete="off" autofocus
+                           style="width: 3rem; height: 3.5rem; text-align: center; font-size: 1.5rem; font-weight: 700;
+                                  border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,0.05);
+                                  color: var(--text-primary); outline: none; transition: border-color 0.2s;">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="1" autocomplete="off"
+                           style="width: 3rem; height: 3.5rem; text-align: center; font-size: 1.5rem; font-weight: 700;
+                                  border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,0.05);
+                                  color: var(--text-primary); outline: none; transition: border-color 0.2s;">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="2" autocomplete="off"
+                           style="width: 3rem; height: 3.5rem; text-align: center; font-size: 1.5rem; font-weight: 700;
+                                  border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,0.05);
+                                  color: var(--text-primary); outline: none; transition: border-color 0.2s;">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="3" autocomplete="off"
+                           style="width: 3rem; height: 3.5rem; text-align: center; font-size: 1.5rem; font-weight: 700;
+                                  border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,0.05);
+                                  color: var(--text-primary); outline: none; transition: border-color 0.2s;">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="4" autocomplete="off"
+                           style="width: 3rem; height: 3.5rem; text-align: center; font-size: 1.5rem; font-weight: 700;
+                                  border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,0.05);
+                                  color: var(--text-primary); outline: none; transition: border-color 0.2s;">
+                    <input type="text" maxlength="1" class="otp-digit" data-index="5" autocomplete="off"
+                           style="width: 3rem; height: 3.5rem; text-align: center; font-size: 1.5rem; font-weight: 700;
+                                  border: 1px solid var(--border-color); border-radius: 10px; background: rgba(255,255,255,0.05);
+                                  color: var(--text-primary); outline: none; transition: border-color 0.2s;">
+                </div>
+                <!-- Hidden field that collects the full OTP for form submission -->
+                <input type="hidden" name="otp" id="id_otp">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 2rem;" id="verify-btn">
+                Verify Email
+            </button>
+        </form>
+    </div>
+
+    <div style="text-align: center; margin-top: 1.5rem;">
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">
+            Didn't receive the code?
+            <a href="{% url 'resend_otp' %}" style="color: var(--accent-color); text-decoration: underline; font-weight: 600;">
+                Resend Code
+            </a>
+        </p>
+    </div>
+</div>
+
+<script>
+(function() {
+    const digits = document.querySelectorAll('.otp-digit');
+    const hidden = document.getElementById('id_otp');
+    const form = document.getElementById('otp-form');
+
+    function collectOTP() {
+        let otp = '';
+        digits.forEach(d => otp += d.value);
+        hidden.value = otp;
+    }
+
+    digits.forEach((input, idx) => {
+        input.addEventListener('input', (e) => {
+            const val = e.target.value.replace(/\D/g, '');
+            e.target.value = val.charAt(0) || '';
+            if (val && idx < digits.length - 1) {
+                digits[idx + 1].focus();
+            }
+            collectOTP();
+            // Auto-submit when all 6 digits are filled
+            if (hidden.value.length === 6) {
+                form.submit();
+            }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+                digits[idx - 1].focus();
+            }
+        });
+
+        // Handle paste
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const pasted = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, 6);
+            for (let i = 0; i < pasted.length && i < digits.length; i++) {
+                digits[i].value = pasted[i];
+            }
+            if (pasted.length > 0) {
+                digits[Math.min(pasted.length, digits.length) - 1].focus();
+            }
+            collectOTP();
+            if (hidden.value.length === 6) {
+                form.submit();
+            }
+        });
+
+        // Highlight on focus
+        input.addEventListener('focus', () => {
+            input.style.borderColor = 'var(--accent-color)';
+            input.style.boxShadow = '0 0 0 2px rgba(99, 102, 241, 0.25)';
+        });
+        input.addEventListener('blur', () => {
+            input.style.borderColor = 'var(--border-color)';
+            input.style.boxShadow = 'none';
+        });
+    });
+
+    form.addEventListener('submit', () => collectOTP());
+})();
+</script>
+{% endblock %}

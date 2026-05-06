@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Profile Header -->
+<div class="glass-panel" style="padding: 3rem; text-align: center;">
+    <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">{{ profile_user.first_name }} {{ profile_user.last_name }}</h1>
+    <h3 style="color: var(--text-secondary); font-weight: 400;">{{ profile_user.title }} {% if profile_user.company %}at {{ profile_user.company }}{% endif %}</h3>
+    
+    {% if profile_user.bio %}
+    <p style="max-width: 600px; margin: 2rem auto; font-size: 1.1rem; line-height: 1.8;">"{{ profile_user.bio }}"</p>
+    {% endif %}
+
+    <div style="margin-top: 2.5rem; display: flex; gap: 1rem; justify-content: center; align-items: center; flex-wrap: wrap;">
+        {% if is_self %}
+            <a href="{% url 'explore' profile_user.username %}" class="btn btn-outline">Explore My Network →</a>
+        {% elif is_connected %}
+            <span class="badge" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71; padding: 0.6rem 1rem; font-size: 0.9rem; border-radius: 20px;">✓ Connected</span>
+            <a href="{% url 'chat_conversation' profile_user.username %}" class="btn btn-primary btn-sm">💬 Chat</a>
+            <a href="{% url 'explore' profile_user.username %}" class="btn btn-outline btn-sm">Explore →</a>
+            <form action="{% url 'remove_connection' profile_user.username %}" method="post" onsubmit="return confirm('Remove connection with {{ profile_user.first_name }}?');" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-sm" style="color: #e74c3c; border-color: rgba(231,76,60,0.3);">Disconnect</button>
+            </form>
+        {% elif existing_chain %}
+            <span class="btn btn-outline" style="cursor: default;">⏳ Intro Request In Progress</span>
+        {% elif pending_temp_chat %}
+            <span class="btn btn-outline" style="cursor: default;">⏳ Temp Chat Request Pending</span>
+        {% elif active_temp_chat %}
+            <a href="{% url 'temp_chat_conversation' active_temp_chat.id %}" class="btn btn-primary">💬 Open Temp Chat ({{ active_temp_chat.hours_remaining }}h left)</a>
+        {% elif all_paths %}
+            <button onclick="document.getElementById('intro-modal').style.display='block'" class="btn btn-primary" style="padding: 0.75rem 2rem;">🤝 Request Introduction</button>
+            <button onclick="document.getElementById('tempchat-modal').style.display='block'" class="btn btn-outline" style="padding: 0.75rem 2rem;">💬 Request Temp Chat (24h)</button>
+        {% else %}
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">No connection path found. This user is outside your extended network.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- All Paths (for non-connected users with paths) -->
+{% if all_paths and not is_connected and not is_self %}
+<h4 style="margin: 2rem 0 1rem;">
+    {% if all_paths|length == 1 %}Shortest Trust Chain{% else %}{{ all_paths|length }} Shortest Paths Found — Choose Your Route{% endif %}
+</h4>
+{% for path in all_paths %}
+<div style="display: flex; align-items: center; gap: 0.5rem; overflow-x: auto; padding: 1.25rem; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; margin-bottom: 0.75rem;">
+    <span style="font-size: 0.75rem; color: var(--text-secondary); margin-right: 0.5rem; white-space: nowrap;">Path {{ forloop.counter }}:</span>
+    {% for node in path %}
+        <div style="text-align: center; min-width: 70px;">
+            {% if forloop.first %}
+                <div style="font-weight: 500;">You</div>
+            {% elif forloop.last %}
+                <div style="font-weight: 600; color: var(--accent-color);">{{ node.first_name }}</div>
+            {% else %}
+                <a href="{% url 'profile' node.username %}" style="font-weight: 500;">{{ node.first_name }}</a>
+            {% endif %}
+            <div style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.2rem;">{{ node.company|default:"Member"|truncatechars:12 }}</div>
+        </div>
+        {% if not forloop.last %}
+        <div style="color: var(--text-secondary); font-size: 1.2rem;">➔</div>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endfor %}
+<p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
+    Each person in the chain will be asked to forward the intro one hop at a time.
+</p>
+{% elif not all_paths and not is_connected and not is_self %}
+<div class="glass-panel" style="margin-top: 2rem;">
+    <p style="margin: 0; color: var(--text-secondary);">No connection path found to this user.</p>
+</div>
+{% endif %}
+
+<!-- Feed (own profile only) -->
+{% if is_self %}
+<div style="margin-top: 2.5rem;">
+    <div class="glass-panel">
+        <h3>Broadcast to your network</h3>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                {{ form.content }}
+            </div>
+            <button type="submit" class="btn btn-primary">Share Update</button>
+        </form>
+    </div>
+
+    <h4 style="margin-bottom: 1.5rem; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.1em; color: var(--text-secondary);">Your Network Feed</h4>
+    <div class="feed">
+        {% for post in posts %}
+            <div class="glass-panel post">
+                <div class="post-header">
+                    <a href="{% url 'profile' post.author.username %}" class="post-author">{{ post.author.first_name }} {{ post.author.last_name }}</a>
+                    <span class="post-meta">{{ post.created_at|date:"F j, Y - g:i a" }}</span>
+                </div>
+                <div class="post-content">{{ post.content }}</div>
+            </div>
+        {% empty %}
+            <div class="glass-panel" style="text-align: center; padding: 3rem 1rem;">
+                <p style="margin: 0;">Your feed is quiet. Connect with people to see updates.</p>
+                <a href="{% url 'network' %}" class="btn btn-outline" style="margin-top: 1rem;">Go to Network</a>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Connections (visible if connected or self) -->
+{% if their_connections %}
+<h4 style="margin: 2.5rem 0 1rem;">{{ profile_user.first_name }}'s Connections ({{ their_connections.count }})</h4>
+<div class="user-list">
+    {% for conn in their_connections %}
+    <div class="user-card">
+        <div class="user-info">
+            <h4>
+                {{ conn.user2.first_name }} {{ conn.user2.last_name }}
+                {% if conn.user2.username == request.user.username %}<span style="font-size: 0.75rem; color: var(--accent-color); margin-left: 0.3rem;">(You)</span>{% endif %}
+            </h4>
+            <p>{{ conn.user2.title }} {% if conn.user2.company %}at {{ conn.user2.company }}{% endif %}</p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            {% if conn.user2.username != request.user.username %}
+                <a href="{% url 'profile' conn.user2.username %}" class="btn btn-outline btn-sm">Profile</a>
+                <a href="{% url 'explore' conn.user2.username %}" class="btn btn-outline btn-sm">Explore →</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Intro Modal -->
+{% if all_paths %}
+<div id="intro-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; padding: 2rem; overflow-y: auto;">
+    <div class="glass-panel" style="max-width: 550px; margin: 5vh auto; position: relative;">
+        <span onclick="document.getElementById('intro-modal').style.display='none'" style="position: absolute; right: 1.5rem; top: 1.5rem; cursor: pointer; font-size: 1.5rem;">&times;</span>
+        <h3>🤝 Request Cascading Introduction</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">Your request will travel through the chain one hop at a time. {{ profile_user.first_name }} will have the final say.</p>
+        
+        <form action="{% url 'request_intro' profile_user.username %}" method="post">
+            {% csrf_token %}
+            
+            {% if all_paths|length > 1 %}
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label class="form-label">Choose a path:</label>
+                {% for path in all_paths %}
+                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="path_index" value="{{ forloop.counter0 }}" {% if forloop.first %}checked{% endif %}>
+                    <span style="font-size: 0.85rem;">
+                        {% for node in path %}{{ node.first_name }}{% if not forloop.last %} ➔ {% endif %}{% endfor %}
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+            {% else %}
+            <input type="hidden" name="path_index" value="0">
+            {% endif %}
+            
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Message</label>
+                <textarea name="message" class="form-control" placeholder="Why you want to connect..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Start Intro Chain</button>
+        </form>
+    </div>
+</div>
+
+<!-- Temp Chat Modal -->
+<div id="tempchat-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; padding: 2rem; overflow-y: auto;">
+    <div class="glass-panel" style="max-width: 550px; margin: 5vh auto; position: relative;">
+        <span onclick="document.getElementById('tempchat-modal').style.display='none'" style="position: absolute; right: 1.5rem; top: 1.5rem; cursor: pointer; font-size: 1.5rem;">&times;</span>
+        <h3>💬 Request Temporary Chat (24h)</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">
+            Request a 24-hour temporary chat with {{ profile_user.first_name }}. 
+            The request will go through the chain — once {{ profile_user.first_name }} accepts, you'll have 24 hours to chat.
+        </p>
+        
+        <form action="{% url 'request_temp_chat' profile_user.username %}" method="post">
+            {% csrf_token %}
+            
+            {% if all_paths|length > 1 %}
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label class="form-label">Choose a path:</label>
+                {% for path in all_paths %}
+                <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="path_index" value="{{ forloop.counter0 }}" {% if forloop.first %}checked{% endif %}>
+                    <span style="font-size: 0.85rem;">
+                        {% for node in path %}{{ node.first_name }}{% if not forloop.last %} ➔ {% endif %}{% endfor %}
+                    </span>
+                </label>
+                {% endfor %}
+            </div>
+            {% else %}
+            <input type="hidden" name="path_index" value="0">
+            {% endif %}
+            
+            <div class="form-group" style="margin-top: 1rem;">
+                <label class="form-label">Message</label>
+                <textarea name="message" class="form-control" placeholder="What would you like to talk about?"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Send Temp Chat Request</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

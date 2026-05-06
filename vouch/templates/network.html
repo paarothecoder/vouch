@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Search Bar -->
+<div class="glass-panel" style="margin-bottom: 2rem;">
+    <h3>Search Your Extended Network</h3>
+    <p style="font-size: 0.9rem;">Find anyone within your connections' connections.</p>
+    <form method="get" action="{% url 'network' %}" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+        <input type="text" name="q" value="{{ query }}" class="form-control" placeholder="Search by name, title, company..." style="flex: 1;">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+</div>
+
+<!-- Search Results -->
+{% if query %}
+<h4 style="margin-bottom: 1rem;">Results for "{{ query }}" ({{ search_results|length }})</h4>
+<div class="user-list" style="margin-bottom: 2rem;">
+    {% for item in search_results %}
+    <div class="glass-panel" style="margin-bottom: 0.75rem; padding: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h4 style="margin-bottom: 0.2rem;">
+                    <a href="{% url 'profile' item.user.username %}" style="color: var(--text-primary);">{{ item.user.first_name }} {{ item.user.last_name }}</a>
+                </h4>
+                <p style="margin-bottom: 0.75rem;">{{ item.user.title }} {% if item.user.company %}at {{ item.user.company }}{% endif %}</p>
+                <div style="display: flex; gap: 0.5rem;">
+                    {% if item.degrees == 1 %}
+                        <span class="badge" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">1st° Connected</span>
+                    {% elif item.degrees == 2 %}
+                        <span class="badge" style="background: rgba(52, 152, 219, 0.2); color: #3498db;">2nd°</span>
+                    {% elif item.degrees == 3 %}
+                        <span class="badge" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">3rd°</span>
+                    {% elif item.degrees %}
+                        <span class="badge" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">{{ item.degrees }}th°</span>
+                    {% endif %}
+                </div>
+            </div>
+            <a href="{% url 'profile' item.user.username %}" class="btn btn-outline btn-sm">View</a>
+        </div>
+        
+        {% if item.path and item.degrees > 1 %}
+        <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+            <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
+                {% for node in item.path %}
+                    {% if forloop.first %}
+                        <span style="font-weight: 500;">You</span>
+                    {% elif forloop.last %}
+                        <span style="font-weight: 500; color: var(--accent-color);">{{ node.first_name }}</span>
+                    {% else %}
+                        <a href="{% url 'profile' node.username %}">{{ node.first_name }}</a>
+                    {% endif %}
+                    {% if not forloop.last %}<span style="color: var(--text-secondary);">➔</span>{% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="glass-panel" style="text-align: center; padding: 2rem;">
+        <p style="margin: 0; color: var(--text-secondary);">No one found in your extended network.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <!-- Left: Connections -->
+    <div>
+        <h4 style="margin-bottom: 1rem;">My Connections ({{ connections.count }})</h4>
+        <div class="user-list">
+            {% for conn in connections %}
+            <div class="user-card">
+                <div class="user-info">
+                    <h4>{{ conn.user2.first_name }} {{ conn.user2.last_name }}</h4>
+                    <p>{{ conn.user2.title }}</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <a href="{% url 'profile' conn.user2.username %}" class="btn btn-outline btn-sm">Profile</a>
+                    <a href="{% url 'explore' conn.user2.username %}" class="btn btn-outline btn-sm">Explore →</a>
+                    <form action="{% url 'remove_connection' conn.user2.username %}" method="post" onsubmit="return confirm('Remove connection with {{ conn.user2.first_name }}?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-sm" style="color: #e74c3c; border-color: rgba(231,76,60,0.3);">✕</button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="glass-panel">
+                <p style="margin: 0;">No connections yet. <a href="{% url 'invites' %}">Send an invite</a> to get started!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Right: Intro Requests -->
+    <div>
+        <h4 style="margin-bottom: 1rem;">Pending Intro Requests ({{ pending_intros.count }})</h4>
+        <div class="user-list">
+            {% for step in pending_intros %}
+            <div class="glass-panel" style="margin-bottom: 0.75rem;">
+                {% if step.is_final %}
+                    <!-- Final step: Target decides whether to connect with initiator -->
+                    <div style="margin-bottom: 1rem;">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.5rem;">Connection Request</div>
+                        <h4 style="color: var(--accent-color);">
+                            <a href="{% url 'profile' step.chain.initiator.username %}" style="color: var(--accent-color);">{{ step.chain.initiator.first_name }} {{ step.chain.initiator.last_name }}</a>
+                        </h4>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.3rem;">
+                            wants to connect with you
+                        </p>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                            Introduced via <strong>{{ step.from_user.first_name }} {{ step.from_user.last_name }}</strong>
+                        </p>
+                    </div>
+                {% else %}
+                    <!-- Intermediary step: Forward intro to next person -->
+                    <div style="margin-bottom: 1rem;">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.5rem;">Forward Request</div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">From:</span>
+                            <h4 style="margin: 0;"><a href="{% url 'profile' step.from_user.username %}">{{ step.from_user.first_name }} {{ step.from_user.last_name }}</a></h4>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">To:</span>
+                            <h4 style="margin: 0; color: var(--accent-color);">
+                                <a href="{% url 'profile' step.next_user.username %}" style="color: var(--accent-color);">{{ step.next_user.first_name }} {{ step.next_user.last_name }}</a>
+                            </h4>
+                        </div>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
+                            {{ step.from_user.first_name }} is asking you to forward this intro to {{ step.next_user.first_name }}.
+                        </p>
+                    </div>
+                {% endif %}
+                
+                {% if step.chain.message %}
+                <div style="background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem;">
+                    "{{ step.chain.message }}"
+                </div>
+                {% endif %}
+                
+                <div style="display: flex; gap: 0.5rem;">
+                    <form action="{% url 'manage_intro' step.id 'accept' %}" method="post">
+                        {% csrf_token %}
+                        {% if step.is_final %}
+                            <button type="submit" class="btn btn-primary btn-sm">✓ Accept Connection</button>
+                        {% else %}
+                            <button type="submit" class="btn btn-primary btn-sm">Forward to {{ step.next_user.first_name }} ➔</button>
+                        {% endif %}
+                    </form>
+                    <form action="{% url 'manage_intro' step.id 'reject' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-sm">Decline</button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="glass-panel" style="text-align: center; padding: 2rem;">
+                <p style="margin: 0; color: var(--text-secondary);">No pending intro requests.</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if my_chains %}
+        <h4 style="margin-top: 2rem; margin-bottom: 1rem;">My Intro Chains</h4>
+        <div class="user-list">
+            {% for chain in my_chains %}
+            <div class="glass-panel" style="margin-bottom: 0.5rem; padding: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-weight: 500;">→ {{ chain.target.first_name }} {{ chain.target.last_name }}</span>
+                    {% if chain.status == 'in_progress' %}
+                        <span class="badge" style="background: rgba(241, 196, 15, 0.2); color: #f1c40f;">In Progress</span>
+                    {% elif chain.status == 'completed' %}
+                        <span class="badge" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">✓ Connected</span>
+                    {% elif chain.status == 'rejected' %}
+                        <span class="badge" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;">Declined</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <a href="{% url 'explore' request.user.username %}" style="font-size: 0.9rem;">Your Network</a>
+        
+        {% for trail_user in trail_users %}
+            <span style="color: var(--text-secondary);">➔</span>
+            <a href="{% url 'explore' trail_user.username %}?trail={% for prev in trail_users %}{% if forloop.counter <= forloop.parentloop.counter %}{{ prev.username }}{% if not forloop.last %},{% endif %}{% endif %}{% endfor %}" style="font-size: 0.9rem;">{{ trail_user.first_name }}</a>
+        {% endfor %}
+        
+        {% if not is_self %}
+        <span style="color: var(--text-secondary);">➔</span>
+        <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">{{ target_user.first_name }} {{ target_user.last_name }}</span>
+        {% endif %}
+    </div>
+
+    <h2>{{ target_user.first_name }} {{ target_user.last_name }}'s Connections ({{ connections.count }})</h2>
+    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+        {% if is_self %}
+        Browse your connections and click "Explore →" to dive deeper into anyone's network.
+        {% else %}
+        Browsing {{ target_user.first_name }}'s network. Click "Explore →" to go deeper.
+        {% endif %}
+    </p>
+</div>
+
+<div class="user-list">
+    {% for conn in connections %}
+    <div class="user-card">
+        <div class="user-info">
+            <h4>{{ conn.user2.first_name }} {{ conn.user2.last_name }}</h4>
+            <p>{{ conn.user2.title }} {% if conn.user2.company %}at {{ conn.user2.company }}{% endif %}</p>
+        </div>
+        
+        <div style="display: flex; gap: 0.5rem;">
+            {% if conn.user2 != request.user %}
+                <a href="{% url 'profile' conn.user2.username %}" class="btn btn-outline btn-sm">Profile</a>
+                <a href="{% url 'explore' conn.user2.username %}?trail={% for prev in trail_users %}{{ prev.username }},{% endfor %}{{ target_user.username }}" class="btn btn-primary btn-sm">Explore →</a>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="glass-panel" style="text-align: center; padding: 3rem 1rem;">
+        <p style="margin: 0; color: var(--text-secondary);">{{ target_user.first_name }} hasn't connected with anyone yet.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

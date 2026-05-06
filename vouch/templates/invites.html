@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Send Invite -->
+<div class="glass-panel" style="margin-bottom: 2rem;">
+    <h3>Invite Someone to Vouch</h3>
+    <p style="font-size: 0.9rem; color: var(--text-secondary);">Generate an invite link. It will be valid for <strong>60 minutes</strong>.</p>
+    
+    <form action="{% url 'send_invite' %}" method="post" style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+        {% csrf_token %}
+        <input type="email" name="email" class="form-control" required placeholder="colleague@company.com" style="flex: 1;">
+        <button type="submit" class="btn btn-primary">Generate Invite Link</button>
+    </form>
+</div>
+
+<!-- Sent Invites History -->
+<h4 style="margin-bottom: 1rem;">Sent Invites ({{ sent_invites.count }})</h4>
+<div class="user-list">
+    {% for inv in sent_invites %}
+    <div class="glass-panel" style="margin-bottom: 0.5rem; padding: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span style="font-weight: 500;">{{ inv.email }}</span>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">
+                    Sent {{ inv.created_at|date:"M j, Y g:i a" }}
+                </div>
+            </div>
+            
+            {% if inv.status == 'pending' %}
+                <span class="badge" style="background: rgba(241, 196, 15, 0.2); color: #f1c40f;">Pending</span>
+            {% elif inv.status == 'accepted' %}
+                <span class="badge" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">✓ Accepted</span>
+            {% elif inv.status == 'expired' %}
+                <span class="badge" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;">Expired</span>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="glass-panel" style="text-align: center; padding: 3rem;">
+        <p style="margin: 0; color: var(--text-secondary);">You haven't sent any invites yet.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

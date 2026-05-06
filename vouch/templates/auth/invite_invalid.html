@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-header">
+        {% if reason == 'expired' %}
+            <h1>Link Expired</h1>
+            <p>This invite link has passed its 60-minute validity window.</p>
+        {% elif reason == 'used' %}
+            <h1>Already Used</h1>
+            <p>This invite link has already been used to create an account.</p>
+        {% else %}
+            <h1>Invalid Link</h1>
+            <p>This invite link is not valid.</p>
+        {% endif %}
+    </div>
+
+    <div class="glass-panel" style="text-align: center; padding: 3rem;">
+        <p style="color: var(--text-secondary); margin-bottom: 2rem;">Ask the person who invited you to generate a new invite link.</p>
+        <a href="{% url 'login' %}" class="btn btn-outline">Go to Sign In</a>
+    </div>
+</div>
+{% endblock %}

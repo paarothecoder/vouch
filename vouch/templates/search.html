@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h2>Search Results for "{{ query }}"</h2>
+    <p style="color: var(--text-secondary);">Found {{ results|length }} members.</p>
+</div>
+
+<div class="user-list">
+    {% for item in results %}
+    <div class="glass-panel" style="margin-bottom: 1rem; padding: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h3 style="margin-bottom: 0.2rem;">
+                    <a href="{% url 'profile' item.user.username %}" style="color: var(--text-primary);">
+                        {{ item.user.first_name }} {{ item.user.last_name }}
+                    </a>
+                </h3>
+                <p style="margin-bottom: 1rem;">
+                    {{ item.user.title }} {% if item.user.company %}at {{ item.user.company }}{% endif %}
+                </p>
+                
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    {% if item.degrees == 1 %}
+                        <span class="badge" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">✓ 1st Degree (Connected)</span>
+                    {% elif item.degrees == 2 %}
+                        <span class="badge" style="background: rgba(52, 152, 219, 0.2); color: #3498db;">2nd Degree</span>
+                    {% elif item.degrees %}
+                        <span class="badge" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;">{{ item.degrees }}nd Degree</span>
+                    {% else %}
+                        <span class="badge" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;">Out of Network</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <a href="{% url 'profile' item.user.username %}" class="btn btn-outline">View Profile</a>
+        </div>
+        
+        {% if item.path and item.degrees > 1 %}
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Shortest Trust Chain</p>
+            <div style="display: flex; align-items: center; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                {% for node in item.path %}
+                    {% if forloop.first %}
+                        <span style="font-weight: 500; font-size: 0.9rem;">You</span>
+                    {% elif forloop.last %}
+                        <span style="font-weight: 500; font-size: 0.9rem; color: var(--accent-color);">{{ node.first_name }}</span>
+                    {% else %}
+                        <a href="{% url 'profile' node.username %}" style="font-size: 0.9rem;">{{ node.first_name }}</a>
+                    {% endif %}
+                    
+                    {% if not forloop.last %}
+                        <span style="color: var(--text-secondary);">➔</span>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="glass-panel" style="text-align: center; padding: 4rem 1rem;">
+        <h3 style="color: var(--text-secondary);">No results found in the network.</h3>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="text-align: center; padding: 8rem 1rem;">
+    <h1 style="font-size: 3.5rem; letter-spacing: -0.04em; margin-bottom: 1rem;">Vouch.</h1>
+    <p style="font-size: 1.3rem; color: var(--text-secondary); max-width: 500px; margin: 0 auto 3rem;">
+        A trust-based professional network built on real connections, not algorithms.
+    </p>
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+        <a href="{% url 'login' %}" class="btn btn-primary" style="padding: 0.8rem 2rem; font-size: 1.05rem;">Sign In</a>
+    </div>
+    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2rem;">
+        Vouch is invite-only. Ask an existing member to invite you.
+    </p>
+</div>
+{% endblock %}

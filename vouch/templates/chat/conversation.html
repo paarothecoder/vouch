@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
+    <a href="{% url 'chat_list' %}" style="font-size: 1.2rem;">← Back</a>
+    <div style="flex: 1;">
+        <h2 style="margin: 0;">{{ other_user.first_name }} {{ other_user.last_name }}</h2>
+        <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">
+            {{ other_user.title }}{% if other_user.company %} at {{ other_user.company }}{% endif %}
+            {% if other_user.account_type %}<span class="badge" style="background: rgba(155,89,182,0.2); color: #9b59b6; font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 6px; margin-left: 0.5rem;">{{ other_user.get_account_type_display }}</span>{% endif %}
+        </p>
+    </div>
+    {% if is_temp and temp_chat %}
+        <span class="badge" style="background: rgba(243, 156, 18, 0.2); color: #f39c12; font-size: 0.8rem; padding: 0.4rem 0.75rem; border-radius: 8px;">⏱ Temp Chat · {{ temp_chat.hours_remaining }}h left</span>
+        {% if request.user == temp_chat.target %}
+            {% if not is_connected %}
+            <form action="{% url 'chat_connect' other_user.username %}" method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'temp_chat_conversation' temp_chat.id %}">
+                <button type="submit" class="btn btn-primary btn-sm">🤝 Add as Connection</button>
+            </form>
+            {% endif %}
+            <form action="{% url 'end_temp_chat' temp_chat.id %}" method="post" style="display: inline;" onsubmit="return confirm('End this temp chat? This cannot be undone.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-sm" style="color: #e74c3c; border-color: rgba(231,76,60,0.3);">End Chat</button>
+            </form>
+        {% endif %}
+    {% endif %}
+</div>
+
+<!-- Chat Messages -->
+<div id="chat-window" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.5rem; height: 55vh; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;">
+    {% for msg in chat_messages %}
+    <div style="display: flex; {% if msg.sender == request.user %}justify-content: flex-end;{% else %}justify-content: flex-start;{% endif %}">
+        <div style="max-width: 70%; padding: 0.75rem 1rem; border-radius: 12px; {% if msg.sender == request.user %}background: var(--accent-color); color: #fff; border-bottom-right-radius: 4px;{% else %}background: rgba(255,255,255,0.08); border-bottom-left-radius: 4px;{% endif %}">
+            <div style="font-size: 0.95rem; line-height: 1.5;">{{ msg.content }}</div>
+            <div style="font-size: 0.7rem; margin-top: 0.3rem; opacity: 0.7; text-align: right;">{{ msg.created_at|date:"g:i a" }}</div>
+        </div>
+    </div>
+    {% empty %}
+    <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
+        <p style="color: var(--text-secondary); font-style: italic;">No messages yet. Start the conversation!</p>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Send Message -->
+{% if is_temp and temp_chat.is_expired %}
+<div class="glass-panel" style="margin-top: 1rem; text-align: center; padding: 1.5rem;">
+    <p style="margin: 0; color: var(--text-secondary);">This temp chat has expired.</p>
+</div>
+{% else %}
+<form method="post" style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+    {% csrf_token %}
+    <input type="text" name="content" class="form-control" placeholder="Type a message..." required autofocus autocomplete="off" style="flex: 1;">
+    <button type="submit" class="btn btn-primary">Send</button>
+</form>
+{% endif %}
+
+<script>
+    const chatWindow = document.getElementById('chat-window');
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+</script>
+{% endblock %}

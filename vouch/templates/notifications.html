@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 style="margin-bottom: 1.5rem;">Notifications</h2>
+
+<div class="user-list">
+    {% for notif in notifs %}
+    <div class="glass-panel" style="margin-bottom: 0.5rem; padding: 1rem 1.25rem; {% if not notif.is_read %}border-left: 3px solid var(--accent-color);{% endif %}">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h4 style="font-size: 0.95rem; margin-bottom: 0.2rem;">
+                    {% if notif.notif_type == 'intro_forward' %}📨
+                    {% elif notif.notif_type == 'intro_accepted' %}✅
+                    {% elif notif.notif_type == 'intro_rejected' %}❌
+                    {% elif notif.notif_type == 'connection_new' %}🤝
+                    {% elif notif.notif_type == 'connection_removed' %}💔
+                    {% elif notif.notif_type == 'temp_chat_request' %}💬
+                    {% elif notif.notif_type == 'temp_chat_active' %}🟢
+                    {% elif notif.notif_type == 'message' %}✉️
+                    {% endif %}
+                    {{ notif.title }}
+                </h4>
+                {% if notif.body %}
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">{{ notif.body|truncatechars:100 }}</p>
+                {% endif %}
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;">
+                <span style="font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap;">{{ notif.created_at|timesince }} ago</span>
+                {% if notif.link %}
+                <a href="{{ notif.link }}" class="btn btn-outline btn-sm" style="font-size: 0.75rem;">View</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="glass-panel" style="text-align: center; padding: 3rem;">
+        <p style="margin: 0; color: var(--text-secondary);">No notifications yet.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

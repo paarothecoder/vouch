@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-wrapper" style="max-width: 600px;">
+    <div class="auth-header">
+        <h1>You've Been Invited</h1>
+        <p>Join Vouch, the trusted professional network.<br>
+        Invited by <strong>{{ invite.sender.first_name }} {{ invite.sender.last_name }}</strong></p>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">
+            ⏱ This link expires in <strong>{{ minutes_left }}</strong> minutes.
+        </p>
+    </div>
+
+    <div class="glass-panel">
+        {% if form.non_field_errors %}
+        <div class="alert error" style="margin-bottom: 1.5rem;">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- Account Type Toggle -->
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label">I am a:</label>
+                <div style="display: flex; gap: 0.75rem;">
+                    <label style="flex: 1; display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
+                        <input type="radio" name="account_type" value="professional" {% if form.account_type.value == 'professional' or not form.account_type.value %}checked{% endif %}>
+                        <span>💼 Professional</span>
+                    </label>
+                    <label style="flex: 1; display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;">
+                        <input type="radio" name="account_type" value="student" {% if form.account_type.value == 'student' %}checked{% endif %}>
+                        <span>🎓 Student</span>
+                    </label>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="id_first_name">First Name</label>
+                    <input type="text" name="first_name" class="form-control" id="id_first_name" value="{{ form.first_name.value|default:'' }}" required>
+                    {% if form.first_name.errors %}<div style="color: #e74c3c; font-size: 0.8rem; margin-top: 0.2rem;">{{ form.first_name.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_last_name">Last Name</label>
+                    <input type="text" name="last_name" class="form-control" id="id_last_name" value="{{ form.last_name.value|default:'' }}" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_email">Email</label>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="email" name="email" class="form-control" id="id_email" value="{{ invite.email }}" readonly style="opacity: 0.7; cursor: not-allowed; flex: 1;">
+                    <button type="button" id="btn-verify-email" class="btn btn-outline" style="white-space: nowrap;">Verify Email</button>
+                </div>
+            </div>
+            
+            <div class="form-group" id="otp-group" style="display: none; background: rgba(52, 152, 219, 0.1); padding: 1rem; border-radius: 8px; border: 1px solid rgba(52, 152, 219, 0.3); margin-bottom: 1rem;">
+                <label class="form-label" for="id_otp" style="color: var(--accent-color);">Verification Code</label>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; margin-top: -0.2rem;">
+                    We sent a 6-digit code to your email.
+                </p>
+                <input type="text" name="otp" class="form-control" id="id_otp" placeholder="123456" maxlength="6">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_username">Username</label>
+                <input type="text" name="username" class="form-control" id="id_username" value="{{ form.username.value|default:'' }}" required>
+                {% if form.username.errors %}<div style="color: #e74c3c; font-size: 0.8rem; margin-top: 0.2rem;">{{ form.username.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="id_title">Professional Title</label>
+                    <input type="text" name="title" class="form-control" id="id_title" value="{{ form.title.value|default:'' }}" placeholder="e.g. Software Engineer">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_company">Company / School</label>
+                    <input type="text" name="company" class="form-control" id="id_company" value="{{ form.company.value|default:'' }}" placeholder="e.g. Acme Corp / MIT">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_bio">Bio (Optional)</label>
+                <textarea name="bio" class="form-control" id="id_bio" placeholder="A brief sentence about what you do">{{ form.bio.value|default:'' }}</textarea>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label" for="id_password">Password</label>
+                    <input type="password" name="password" class="form-control" id="id_password" required>
+                    {% if form.password.errors %}<div style="color: #e74c3c; font-size: 0.8rem; margin-top: 0.2rem;">{{ form.password.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_password_confirm">Confirm Password</label>
+                    <input type="password" name="password_confirm" class="form-control" id="id_password_confirm" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-submit-form" style="width: 100%; margin-top: 2rem;">Create Profile & Connect</button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnVerify = document.getElementById('btn-verify-email');
+    const otpGroup = document.getElementById('otp-group');
+    const otpInput = document.getElementById('id_otp');
+    const emailInput = document.getElementById('id_email');
+    
+    btnVerify.addEventListener('click', function() {
+        const email = emailInput.value;
+        if (!email) return;
+        
+        btnVerify.disabled = true;
+        btnVerify.innerText = 'Sending...';
+        
+        fetch("{% url 'send_prereg_otp' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: new URLSearchParams({
+                'email': email
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                btnVerify.innerText = 'Code Sent ✓';
+                btnVerify.className = 'btn btn-outline';
+                btnVerify.style.borderColor = '#2ecc71';
+                btnVerify.style.color = '#2ecc71';
+                otpGroup.style.display = 'block';
+                otpInput.required = true;
+                otpInput.focus();
+            } else {
+                alert(data.error || 'Failed to send verification code.');
+                btnVerify.disabled = false;
+                btnVerify.innerText = 'Verify Email';
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('An error occurred. Please try again.');
+            btnVerify.disabled = false;
+            btnVerify.innerText = 'Verify Email';
+        });
+    });
+});
+</script>
+{% endblock %}

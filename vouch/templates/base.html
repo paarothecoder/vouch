@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vouch | Trust-Based Network</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="{% url 'landing' %}" class="navbar-brand">Vouch.</a>
+            
+            <div class="navbar-nav">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'profile' user.username %}" class="nav-link">Profile</a>
+                    <a href="{% url 'network' %}" class="nav-link">Network</a>
+                    <a href="{% url 'chat_list' %}" class="nav-link">Chat</a>
+                    <a href="{% url 'invites' %}" class="nav-link">Invites</a>
+                    <a href="{% url 'notifications' %}" class="nav-link" style="position: relative;">
+                        🔔
+                        {% if unread_notif_count %}
+                        <span style="position: absolute; top: -4px; right: -8px; background: #e74c3c; color: #fff; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 8px; font-weight: 700;">{{ unread_notif_count }}</span>
+                        {% endif %}
+                    </a>
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline btn-sm">Log Out</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'login' %}" class="btn btn-outline btn-sm">Sign In</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <div class="container">
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <li class="alert {{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+
+            {% block content %}
+            {% endblock %}
+        </div>
+    </main>
+</body>
+</html>
